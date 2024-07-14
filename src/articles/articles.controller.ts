@@ -54,7 +54,6 @@ export class ArticlesController {
     @Body() createArticleDto: CreateArticleDto,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<Article> {
-    const fileSize = 5 * 1024 * 10;
     if (!file) {
       throw new BadRequestException('File is required');
     }
@@ -65,10 +64,30 @@ export class ArticlesController {
   }
 
   @Patch('/:id/update')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: storageConfig('article'),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // max size 5MB
+      },
+      fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Invalid file type'), false);
+        }
+      },
+    }),
+  )
   updateArticle(
     @Param('id') id: string,
     @Body() updateArticleDto: UpdateArticleDto,
+    @UploadedFile() file: Express.Multer.File,
   ): Promise<Article> {
+    if (file) {
+      updateArticleDto.filename = file.destination + '/' + file.filename;
+    }
     return this.articlesService.updateArticle(id, updateArticleDto);
   }
 

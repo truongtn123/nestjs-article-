@@ -5,6 +5,8 @@ import { Article } from './article.entity';
 import { CreateArticleDto } from './dto/create-atricle.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { GetArticlesFilterDto } from './dto/get-articles-filter.dto';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @Injectable()
 export class ArticlesService {
@@ -73,13 +75,26 @@ export class ArticlesService {
     updateArticleDto: UpdateArticleDto,
   ): Promise<Article> {
     const article = await this.getArticleById(id);
-    const { title, description } = updateArticleDto;
+    const { title, description, filename } = updateArticleDto;
     const updated_at = new Date();
+    // console.log(filename);
+
+    if (filename) {
+      const oldFilePath = path.join(
+        __dirname,
+        '..',
+        '..',
+        '..',
+        article.filename,
+      );
+      fs.unlinkSync(oldFilePath); //delete
+    }
 
     await this.articlesRepository.update(id, {
       ...article,
       title,
       description,
+      filename,
       updated_at,
     });
 

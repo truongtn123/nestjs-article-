@@ -1,5 +1,7 @@
 export class UpdateArticleDto {
-  title: string;
+  title?: string;
 
-  description: string;
+  description?: string;
+
+  filename?: string;
 }

@@ -4,11 +4,14 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
   Query,
+  Req,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
@@ -18,19 +21,31 @@ import { UpdateArticleDto } from './dto/update-article.dto';
 import { GetArticlesFilterDto } from './dto/get-articles-filter.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { storageConfig } from 'utils/storage.config';
+import { AuthGuard } from 'src/auth/auth.guard';
 
 @Controller('articles')
 export class ArticlesController {
   constructor(private articlesService: ArticlesService) {}
 
   @Get()
-  getArticles(@Query() filterDto: GetArticlesFilterDto): Promise<any> {
-    return this.articlesService.getArticles(filterDto);
+  @UseGuards(AuthGuard)
+  getArticles(
+    @Query() filterDto: GetArticlesFilterDto,
+    @Req() req: Request,
+  ): Promise<any> {
+    const userId = req['user'].id;
+    return this.articlesService.getArticles(filterDto, userId);
   }
 
   @Get('/:id')
-  getArticleById(@Param('id') id: string): Promise<Article> {
-    return this.articlesService.getArticleById(id);
+  @UseGuards(AuthGuard)
+  getArticleById(
+    @Param('id') id: string,
+    @Req() req: Request,
+  ): Promise<Article> {
+    const userId = req['user'].id;
+
+    return this.articlesService.getArticleById(id, userId);
   }
 
   @Post()
@@ -50,20 +65,28 @@ export class ArticlesController {
       },
     }),
   )
+  @UseGuards(AuthGuard)
   createArticle(
+    @Req() req: Request,
     @Body() createArticleDto: CreateArticleDto,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<Article> {
+    const userId = req['user'].id;
+
     if (!file) {
       throw new BadRequestException('File is required');
     }
-    return this.articlesService.createArticle({
-      ...createArticleDto,
-      filename: file.destination + '/' + file.filename,
-    });
+    return this.articlesService.createArticle(
+      {
+        ...createArticleDto,
+        filename: file.destination + '/' + file.filename,
+      },
+      userId,
+    );
   }
 
   @Patch('/:id/update')
+  @UseGuards(AuthGuard)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: storageConfig('article'),
@@ -81,18 +104,23 @@ export class ArticlesController {
     }),
   )
   updateArticle(
+    @Req() req: Request,
     @Param('id') id: string,
     @Body() updateArticleDto: UpdateArticleDto,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<Article> {
+    const userId = req['user'].id;
+
     if (file) {
       updateArticleDto.filename = file.destination + '/' + file.filename;
     }
-    return this.articlesService.updateArticle(id, updateArticleDto);
+    return this.articlesService.updateArticle(id, updateArticleDto, userId);
   }
 
   @Delete('/:id')
-  deleteArticle(@Param('id') id: string): Promise<void> {
-    return this.articlesService.deleteArticle(id);
+  @UseGuards(AuthGuard)
+  deleteArticle(@Param('id') id: string, @Req() req: Request): Promise<void> {
+    const userId = req['user'].id;
+    return this.articlesService.deleteArticle(id, userId);
   }
 }

@@ -1,7 +1,11 @@
+import { Exclude } from 'class-transformer';
+import { Article } from 'src/articles/article.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
@@ -14,11 +18,19 @@ export class User {
   username: string;
 
   @Column()
+  @Exclude()
   password: string;
+
+  @Column({ nullable: true })
+  @Exclude()
+  refresh_token: string;
 
   @CreateDateColumn()
   create_at: Date;
 
   @Column({ default: null })
   update_at: Date;
+
+  @OneToMany(() => Article, (article) => article.user)
+  articles: Article[];
 }
